@@ -1,0 +1,20 @@
+version: '3.8'
+services:
+  integrador_programa_pontos:
+    restart: always
+    build:
+      context: ./
+    volumes:
+      - ./:/home/node/app
+      - ignore:/home/node/app/node_modules/
+    command: npm run start-dev
+    ports:
+      - '3003:3003'
+    environment:
+      DEBUG: nodejs-docker-express:*
+      NETWORK_TRACE: datadog
+
+
+volumes:
+  ignore:
+
