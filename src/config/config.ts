@@ -10,8 +10,10 @@ dotenv.config({ path });
 
 const envSchema = Joi.object({
   NODE_ENV: Joi.string().required(),
-  SPOTIFY_CLIENT_ID: Joi.string().required(),
   PORT: Joi.number().default(3000),
+  SPOTIFY_CLIENT_ID: Joi.string().required(),
+  SPOTIFY_API_URL: Joi.string().required(),
+  SPOTIFY_CLIENT_SECRET: Joi.string().required()
 }).unknown(true);
 
 const {error, value: envVars} = envSchema.validate(process.env);
@@ -24,6 +26,8 @@ export const envConfig = {
   env: envVars.NODE_ENV,
   port: envVars.PORT,
   spotify: {
-    client: envVars.SPOTIFY_CLIENT_ID
+    client_id: envVars.SPOTIFY_CLIENT_ID,
+    api: envVars.SPOTIFY_API_URL,
+    client_secret: envVars.SPOTIFY_CLIENT_SECRET
   },
 }

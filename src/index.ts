@@ -6,13 +6,14 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { setupRoutes } from './config/routes';
 import { envConfig } from './config/config';
+import errorHandler from './middlewares/error.handler';
 
 const app = express();
 app.use(express.json());
 app.use(helmet());
 app.use(cors());
-
 setupRoutes(app);
+app.use(errorHandler.handleError);
 
 const PORT = envConfig.port || 3000;
 
