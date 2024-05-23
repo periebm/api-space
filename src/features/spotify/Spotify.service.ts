@@ -8,4 +8,10 @@ export class SpotifyService{
 
     return token;
   }
+
+  async getPodcastEpisodes(){
+    const episodes = await this.repository.getPodcastEpisodes();
+
+    return episodes;
+  }
 }

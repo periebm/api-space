@@ -14,6 +14,17 @@ class SpotifyController {
       next(error);
     }
   }
+
+  async getPodcastEpisodes(req: Request, res: Response, next: NextFunction) {
+    try {
+      const spotifyService = new SpotifyService(spotifyRepository);
+
+      const response = await spotifyService.getPodcastEpisodes();
+      return res.status(HttpStatusCode.Ok).send(response);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 const spotifyController = new SpotifyController();

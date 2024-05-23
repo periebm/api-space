@@ -6,4 +6,5 @@ export type SpotifyToken = {
 
 export interface ISpotifyRepository {
   requestToken():Promise<SpotifyToken | undefined>;
+  getPodcastEpisodes():Promise<any | undefined>;
 }
