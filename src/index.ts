@@ -1,17 +1,18 @@
 import express from 'express';
 import './config/config';
 import cors from 'cors';
-
-
 import helmet from 'helmet';
 import { setupRoutes } from './config/routes';
 import { envConfig } from './config/config';
 import errorHandler from './middlewares/error.handler';
+import cookieParser from 'cookie-parser';
 
 const app = express();
 app.use(express.json());
 app.use(helmet());
 app.use(cors());
+app.use(cookieParser());
+
 setupRoutes(app);
 app.use(errorHandler.handleError);
 
