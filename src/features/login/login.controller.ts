@@ -28,7 +28,7 @@ class LoginController {
 
       const response = await loginService.refresh(refreshToken);
       res
-      .header('Authorization', response.accessToken)
+      .header('Authorization', `Bearer ${response.accessToken}`)
       .send(response.decoded.user);
     } catch (error) {
       console.error(error);

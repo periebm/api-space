@@ -1,47 +1,86 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import jwt, { JwtPayload } from 'jsonwebtoken';
 import { envConfig } from '../config/config';
+import { HttpStatusCode } from 'axios';
 
 const SECRET_KEY = envConfig.jwt_secret;
 
-export const authorization = (req: Request, res: Response, next: NextFunction) => {
-  const accessToken = req.headers['authorization'] ? req.headers['authorization'] : '';
-  const refreshToken = req.cookies['refreshToken'];
-
-  if (!accessToken && !refreshToken) {
-    return res.status(401).send('Access Denied. No token provided.');
+class AuthorizationMiddleware {
+  constructor() {
+    this.jwtValidator = this.jwtValidator.bind(this); // Bind the context of this
+    //TODO: remover o texto
+    /*
+    O método jwtValidator pode ser chamado de forma que o contexto do this não seja preservado, especialmente quando usado como middleware em um framework
+     como o Express. O Express chama middlewares com seu próprio contexto, o que pode fazer com que this dentro do middleware não seja o que você espera.
+     Para resolver o problema no primeiro código, você pode garantir que o método jwtValidator seja sempre chamado com o contexto correto,
+     vinculado à instância da classe. Aqui está uma forma de fazer isso usando a vinculação explícita no construtor
+    */
   }
 
-  try {
-    if (accessToken) {
-      const decoded: any = jwt.verify(accessToken, SECRET_KEY);
-      res.locals.user = decoded.user;
-      return next();
+  private validateToken(token: string) {
+    try {
+      const decoded = jwt.verify(token, SECRET_KEY);
+      if (typeof decoded === 'string') {
+        return { decoded: null, err: new Error('Formato decoded errado.') };
+      }
+      return { decoded, err: null };
+    } catch (err) {
+      return { decoded: null, err };
     }
-  } catch (error) {
-    // Access token is invalid or expired
   }
 
-  // If access token is invalid/expired, try to use the refresh token
-  if (!refreshToken) {
-    return res.status(401).send('Access Denied. No refresh token provided.');
-  }
+  public jwtValidator(req: Request, res: Response, next: NextFunction) {
+    const accessToken = req.headers['authorization']?.split(' ')[1];
+    const refreshToken = req.cookies['refreshToken'];
 
-  try {
-    const decoded: any = jwt.verify(refreshToken, SECRET_KEY);
-    const newAccessToken = jwt.sign({ user: decoded.user }, SECRET_KEY, {
-      expiresIn: '1h',
-    });
+    if (!accessToken && !refreshToken) {
+      return res.status(HttpStatusCode.Unauthorized).send({
+        success: false,
+        statusCode: HttpStatusCode.Unauthorized,
+        message: 'Não autorizado.',
+      });
+    }
 
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      sameSite: 'strict',
-    });
-    console.log(newAccessToken);
-    res.setHeader('Authorization', `Bearer ${newAccessToken}`);
-    res.locals.user = decoded.user;
-    next();
-  } catch (error) {
-    return res.status(400).send('Invalid Token.');
+    try {
+      if (accessToken) {
+        const token = jwt.verify(accessToken, SECRET_KEY) as JwtPayload;
+        if(!token.user) throw new Error();
+
+        res.locals.user = token.user;
+        return next();
+      }
+    } catch (error) {
+      if (!refreshToken) {
+        return res.status(HttpStatusCode.Unauthorized).send({
+          success: false,
+          statusCode: HttpStatusCode.Unauthorized,
+          message: 'Não autorizado. Refresh Token',
+        });
+      }
+
+      try {
+        const token = jwt.verify(refreshToken, SECRET_KEY) as JwtPayload;
+        if(!token.user) throw new Error();
+
+        const newAccessToken = jwt.sign({ user: token.user }, SECRET_KEY, {
+          expiresIn: '1h',
+        });
+        res.cookie('refreshToken', refreshToken, {
+          httpOnly: true,
+          sameSite: 'strict',
+        });
+        console.log('NOVO TOKEN DE ACESSO', newAccessToken);
+        res.setHeader('Authorization', `Bearer ${newAccessToken}`);
+        res.locals.user = token.decoded.user;
+        next();
+      } catch (error) {
+        return res.status(HttpStatusCode.Unauthorized).send({
+          success: false,
+          statusCode: HttpStatusCode.BadRequest,
+          message: 'Token inválido.',
+        });
+      }
+    }
   }
-};
+}
+export const authorizationMiddleware = new AuthorizationMiddleware();
